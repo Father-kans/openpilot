@@ -348,9 +348,6 @@ class Controls:
     elif self.CP.enableCruise and CS.cruiseState.enabled:
       self.v_cruise_kph = CS.cruiseState.speed * CV.MS_TO_KPH
 
-    curv_speed_ms = self.cal_curve_speed(self.sm, CS.vEgo, self.sm.frame)
-    self.v_cruise_kph = min(self.v_cruise_kph, curv_speed_ms * CV.MS_TO_KPH)
-
     limit_speed, self.road_limit_speed, self.road_limit_left_dist, first_started, log = road_speed_limiter_get_max_speed(CS, self.v_cruise_kph)
 
     if limit_speed > 20:
@@ -361,6 +358,9 @@ class Controls:
 
     else:
       self.v_cruise_kph_limit = self.v_cruise_kph
+
+    curv_speed_ms = self.cal_curve_speed(self.sm, CS.vEgo, self.sm.frame)
+    self.v_cruise_kph_limit = min(self.v_cruise_kph_limit, curv_speed_ms * CV.MS_TO_KPH)
 
     # decrease the soft disable timer at every step, as it's reset on
     # entrance in SOFT_DISABLING state
