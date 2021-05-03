@@ -66,11 +66,12 @@ def limit_accel_in_turns(v_ego, angle_steers, a_target, CP):
   this should avoid accelerating when losing the target in turns
   """
   
-#  if int(kegman_kans.conf['slowOnCurves']):
-#    a_total_max = interp(v_ego, _A_TOTAL_MAX_BP_SOC, _A_TOTAL_MAX_V_SOC)
-#  else:
-  a_total_max = interp(v_ego, _A_TOTAL_MAX_BP, _A_TOTAL_MAX_V)
-  a_y = v_ego**2 * angle_steers * CV.DEG_TO_RAD / (CP.steerRatio * CP.wheelbase) * 0.75
+  if int(kegman_kans.conf['slowOnCurves']):
+    a_total_max = interp(v_ego, _A_TOTAL_MAX_BP_SOC, _A_TOTAL_MAX_V_SOC)
+  else:
+    a_total_max = interp(v_ego, _A_TOTAL_MAX_BP, _A_TOTAL_MAX_V)
+
+  a_y = v_ego**2 * angle_steers * CV.DEG_TO_RAD / (CP.steerRatio * CP.wheelbase)
   a_x_allowed = math.sqrt(max(a_total_max**2 - a_y**2, 0.))
 
   return [a_target[0], min(a_target[1], a_x_allowed)]
@@ -101,6 +102,8 @@ class Planner():
     self.fcw = False
 
     self.params = Params()
+    self.kegman_kans = kegman_kans_conf()
+    self.mpc_frame = 0
     self.first_loop = True
 
   def choose_solution(self, v_cruise_setpoint, enabled):
@@ -144,6 +147,12 @@ class Planner():
 
     enabled = (long_control_state == LongCtrlState.pid) or (long_control_state == LongCtrlState.stopping)
     following = lead_1.status and lead_1.dRel < 45.0 and lead_1.vLeadK > v_ego and lead_1.aLeadK > 0.0
+
+    if self.mpc_frame % 1000 == 0:
+      self.kegman_kans = kegman_kans_conf()
+      self.mpc_frame = 0
+      
+    self.mpc_frame += 1
 
     self.v_acc_start = self.v_acc_next
     self.a_acc_start = self.a_acc_next
