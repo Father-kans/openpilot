@@ -310,6 +310,7 @@ class Controls:
 
     return CS
 
+# bellows are for Slow on Curve by Neokii
   def cal_curve_speed(self, sm, v_ego, frame):
 
     if frame % 10 == 0:
@@ -358,7 +359,7 @@ class Controls:
 
     else:
       self.v_cruise_kph_limit = self.v_cruise_kph
-
+# 2 lines for Slow on Curve
     curv_speed_ms = self.cal_curve_speed(self.sm, CS.vEgo, self.sm.frame)
     self.v_cruise_kph_limit = min(self.v_cruise_kph_limit, curv_speed_ms * CV.MS_TO_KPH)
 
