@@ -66,11 +66,11 @@ def limit_accel_in_turns(v_ego, angle_steers, a_target, CP):
   this should avoid accelerating when losing the target in turns
   """
   
-#  if int(kegman_kans.conf['slowOnCurves']):
-#    a_total_max = interp(v_ego, _A_TOTAL_MAX_BP_SOC, _A_TOTAL_MAX_V_SOC)
-#  else:
-  a_total_max = interp(v_ego, _A_TOTAL_MAX_BP, _A_TOTAL_MAX_V)
-  a_y = v_ego**2 * angle_steers * CV.DEG_TO_RAD / (CP.steerRatio * CP.wheelbase) * 0.75
+  if int(kegman_kans.conf['slowOnCurves']):
+    a_total_max = interp(v_ego, _A_TOTAL_MAX_BP_SOC, _A_TOTAL_MAX_V_SOC)
+  else:
+    a_total_max = interp(v_ego, _A_TOTAL_MAX_BP, _A_TOTAL_MAX_V)
+  a_y = v_ego**2 * angle_steers * CV.DEG_TO_RAD / (CP.steerRatio * CP.wheelbase)
   a_x_allowed = math.sqrt(max(a_total_max**2 - a_y**2, 0.))
 
   return [a_target[0], min(a_target[1], a_x_allowed)]
