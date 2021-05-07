@@ -101,6 +101,8 @@ class Planner():
     self.fcw = False
 
     self.params = Params()
+    self.kegman_kans = kegman_kans_conf()
+    self.mpc_frame = 0
     self.first_loop = True
 
   def choose_solution(self, v_cruise_setpoint, enabled):
@@ -144,6 +146,12 @@ class Planner():
 
     enabled = (long_control_state == LongCtrlState.pid) or (long_control_state == LongCtrlState.stopping)
     following = lead_1.status and lead_1.dRel < 45.0 and lead_1.vLeadK > v_ego and lead_1.aLeadK > 0.0
+
+    if self.mpc_frame % 1000 == 0:
+      self.kegman_kans = kegman_kans_conf()
+      self.mpc_frame = 0
+      
+    self.mpc_frame += 1
 
     self.v_acc_start = self.v_acc_next
     self.a_acc_start = self.a_acc_next

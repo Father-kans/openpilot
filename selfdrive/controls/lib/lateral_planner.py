@@ -87,7 +87,7 @@ class LateralPlanner():
     self.desired_curvature_rate = 0.0
     self.safe_desired_curvature_rate = 0.0
 
-  def update(self, sm, CP, VM):
+  def update(self, sm, CP):
     v_ego = sm['carState'].vEgo
     active = sm['controlsState'].active
     measured_curvature = sm['controlsState'].curvature
@@ -232,7 +232,7 @@ class LateralPlanner():
     else:
       self.solution_invalid_cnt = 0
 
-  def publish(self, sm, pm, VM):
+  def publish(self, sm, pm):
     plan_solution_valid = self.solution_invalid_cnt < 2
     plan_send = messaging.new_message('lateralPlan')
     plan_send.valid = sm.all_alive_and_valid(service_list=['carState', 'controlsState', 'modelV2'])
