@@ -94,7 +94,6 @@ class CarState(CarStateBase):
     self.lkas_status = pt_cp.vl["PSCMStatus"]['LKATorqueDeliveredStatus']
     ret.steerWarning = self.lkas_status not in [0, 1]
 
-    ret.steeringTorqueEps = pt_cp.vl["PSCMStatus"]['LKATorqueDelivered']
     self.engineRPM = pt_cp.vl["ECMEngineStatus"]['EngineRPM']
     # bellow line for Brake Light	
     ret.brakeLights = ch_cp.vl["EBCMFrictionBrakeStatus"]["FrictionBrakePressure"] != 0 or ret.brakePressed
