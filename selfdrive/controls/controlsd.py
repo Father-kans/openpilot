@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import os
 import math
+
+import numpy as np
+
 from cereal import car, log
 from common.numpy_fast import clip, interp
 from common.realtime import sec_since_boot, config_realtime_process, Priority, Ratekeeper, DT_CTRL
@@ -12,7 +15,7 @@ from selfdrive.config import Conversions as CV
 from selfdrive.swaglog import cloudlog
 from selfdrive.boardd.boardd import can_list_to_can_capnp
 from selfdrive.car.car_helpers import get_car, get_startup_event, get_one_can
-from selfdrive.controls.lib.lane_planner import CAMERA_OFFSET
+from selfdrive.controls.lib.lane_planner import CAMERA_OFFSET, TRAJECTORY_SIZE
 from selfdrive.controls.lib.drive_helpers import update_v_cruise, initialize_v_cruise
 from selfdrive.controls.lib.longcontrol import LongControl, STARTING_TARGET_SPEED
 from selfdrive.controls.lib.latcontrol_pid import LatControlPID
@@ -61,7 +64,8 @@ class Controls:
       ignore = ['driverCameraState', 'managerState'] if SIMULATION else None
       self.sm = messaging.SubMaster(['deviceState', 'pandaState', 'modelV2', 'liveCalibration',
                                      'driverMonitoringState', 'longitudinalPlan', 'lateralPlan', 'liveLocationKalman',
-                                     'roadCameraState', 'driverCameraState', 'managerState', 'liveParameters', 'radarState'], ignore_alive=ignore)
+                                     'roadCameraState', 'driverCameraState', 'managerState', 'liveParameters', 'radarState'],
+                                     ignore_alive=ignore, ignore_avg_freq=['radarState'])
 
     self.can_sock = can_sock
     if can_sock is None:
@@ -138,6 +142,7 @@ class Controls:
     self.road_limit_speed = 0
     self.road_limit_left_dist = 0
     self.v_cruise_kph_limit = 0
+    self.curve_speed_ms = 255.
 
     self.sm['liveCalibration'].calStatus = Calibration.CALIBRATED
     self.sm['deviceState'].freeSpacePercent = 100
@@ -305,6 +310,33 @@ class Controls:
 
     return CS
 
+  def cal_curve_speed(self, sm, v_ego, frame):
+
+    if frame % 10 == 0:
+      md = sm['modelV2']
+      if md is not None and len(md.position.x) == TRAJECTORY_SIZE and len(md.position.y) == TRAJECTORY_SIZE:
+        x = md.position.x
+        y = md.position.y
+        dy = np.gradient(y, x)
+        d2y = np.gradient(dy, x)
+        curv = d2y / (1 + dy ** 2) ** 1.5
+        curv = curv[5:TRAJECTORY_SIZE - 10]
+        a_y_max = 2.975 - v_ego * 0.0375  # ~1.85 @ 75mph, ~2.6 @ 25mph
+        v_curvature = np.sqrt(a_y_max / np.clip(np.abs(curv), 1e-4, None))
+        model_speed = np.mean(v_curvature) * 0.94
+
+        if model_speed < v_ego:
+          self.curve_speed_ms = float(max(model_speed, 32. * CV.KPH_TO_MS))
+        else:
+          self.curve_speed_ms = 255.
+
+        if np.isnan(self.curve_speed_ms):
+          self.curve_speed_ms = 255.
+      else:
+        self.curve_speed_ms = 255.
+
+    return self.curve_speed_ms
+
   def state_transition(self, CS):
     """Compute conditional state transitions and execute actions on state transitions"""
 
@@ -326,6 +358,9 @@ class Controls:
 
     else:
       self.v_cruise_kph_limit = self.v_cruise_kph
+
+    curv_speed_ms = self.cal_curve_speed(self.sm, CS.vEgo, self.sm.frame)
+    self.v_cruise_kph_limit = min(self.v_cruise_kph_limit, curv_speed_ms * CV.MS_TO_KPH)
 
     # decrease the soft disable timer at every step, as it's reset on
     # entrance in SOFT_DISABLING state
