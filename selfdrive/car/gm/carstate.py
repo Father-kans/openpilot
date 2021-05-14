@@ -15,12 +15,14 @@ class CarState(CarStateBase):
     can_define = CANDefine(DBC[CP.carFingerprint]['pt'])
     self.shifter_values = can_define.dv["ECMPRDNL"]["PRNDL"]
 
+#3Bar Distance
     self.prev_distance_button = 0
     self.prev_lka_button = 0
     self.lka_button = 0
     self.distance_button = 0
     self.follow_level = 2
     self.lkMode = True
+#Autohold
     self.autoHold = False
     self.autoHoldActive = False
     self.autoHoldActivated = False
@@ -29,16 +31,18 @@ class CarState(CarStateBase):
     self.engineRPM = 0
 
 
-  def update(self, pt_cp, ch_cp):
+  def update(self, pt_cp, ch_cp): # line for brake light
     ret = car.CarState.new_message()
 
     self.prev_cruise_buttons = self.cruise_buttons
     self.cruise_buttons = pt_cp.vl["ASCMSteeringButton"]['ACCButtons']
+# 4 lines for 3Bar Distance	
     self.prev_lka_button = self.lka_button
     self.lka_button = pt_cp.vl["ASCMSteeringButton"]["LKAButton"]
     self.prev_distance_button = self.distance_button
     self.distance_button = pt_cp.vl["ASCMSteeringButton"]["DistanceButton"]
 
+# 6 lines to match OP's speed to Cluster's
 #    ret.wheelSpeeds.fl = pt_cp.vl["EBCMWheelSpdFront"]['FLWheelSpd'] * CV.KPH_TO_MS
 #    ret.wheelSpeeds.fr = pt_cp.vl["EBCMWheelSpdFront"]['FRWheelSpd'] * CV.KPH_TO_MS
 #    ret.wheelSpeeds.rl = pt_cp.vl["EBCMWheelSpdRear"]['RLWheelSpd'] * CV.KPH_TO_MS
@@ -94,11 +98,12 @@ class CarState(CarStateBase):
     self.lkas_status = pt_cp.vl["PSCMStatus"]['LKATorqueDeliveredStatus']
     ret.steerWarning = self.lkas_status not in [0, 1]
 
-    ret.steeringTorqueEps = pt_cp.vl["PSCMStatus"]['LKATorqueDelivered']
     self.engineRPM = pt_cp.vl["ECMEngineStatus"]['EngineRPM']
-    # bellow line for Brake Light	
+
+# bellow line for Brake Light	
     ret.brakeLights = ch_cp.vl["EBCMFrictionBrakeStatus"]["FrictionBrakePressure"] != 0 or ret.brakePressed
 
+# belows are for GM's Autohold
     if kegman_kans.conf['AutoHold'] == "1":
       self.autoHold = True
     else:
@@ -106,7 +111,7 @@ class CarState(CarStateBase):
 
     ret.autoHoldActivated = self.autoHoldActivated
     return ret
-
+# 2 lines for 3 Bar distance
   def get_follow_level(self):
     return self.follow_level  
   
