@@ -289,7 +289,7 @@ void encoder_thread(int cam_idx) {
           eidx.setSegmentId(out_id);
           if (lh) {
             auto bytes = msg.toBytes();
-            lh_log(lh, bytes.begin(), bytes.size(), false);
+            lh_log(lh, bytes.begin(), bytes.size(), true);
           }
         }
       }
