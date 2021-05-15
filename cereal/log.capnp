@@ -536,8 +536,6 @@ struct ControlsState @0x97ff69c53601abf1 {
 
   angleSteers @61 :Float32;
 
-  longPlanSource @66 :UInt8;
-
   lateralControlState :union {
     indiState @52 :LateralINDIState;
     pidState @53 :LateralPIDState;
@@ -668,7 +666,6 @@ struct ModelDataV2 {
   leads @11 :List(LeadDataV2);
 
   meta @12 :MetaData;
-  path @18 :PathData;  
 
   # All SI units and in device frame
   struct XYZTData {
@@ -679,10 +676,6 @@ struct ModelDataV2 {
     xStd @4 :List(Float32);
     yStd @5 :List(Float32);
     zStd @6 :List(Float32);
-  }
-
-  struct PathData {
-    poly @0 :List(Float32);
   }
 
   struct LeadDataV2 {
@@ -767,7 +760,6 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
     mpc2 @2;
     mpc3 @3;
     model @4;
-    curveSlowdown @5;
   }
 
   # deprecated
