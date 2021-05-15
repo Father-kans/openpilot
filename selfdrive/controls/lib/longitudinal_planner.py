@@ -112,7 +112,7 @@ class Planner():
         solutions['mpc1'] = self.mpc1.v_mpc
       if self.mpc2.prev_lead_status:
         solutions['mpc2'] = self.mpc2.v_mpc
-
+ 
       slowest = min(solutions, key=solutions.get)
 
       self.longitudinalPlanSource = slowest

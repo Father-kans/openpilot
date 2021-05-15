@@ -42,7 +42,7 @@ class CarState(CarStateBase):
     self.prev_distance_button = self.distance_button
     self.distance_button = pt_cp.vl["ASCMSteeringButton"]["DistanceButton"]
 
-# 6 lines to match OP's speed to Cluster's
+# 5 lines to match OP's speed to Cluster's
 #    ret.wheelSpeeds.fl = pt_cp.vl["EBCMWheelSpdFront"]['FLWheelSpd'] * CV.KPH_TO_MS
 #    ret.wheelSpeeds.fr = pt_cp.vl["EBCMWheelSpdFront"]['FRWheelSpd'] * CV.KPH_TO_MS
 #    ret.wheelSpeeds.rl = pt_cp.vl["EBCMWheelSpdRear"]['RLWheelSpd'] * CV.KPH_TO_MS
@@ -103,7 +103,7 @@ class CarState(CarStateBase):
 # bellow line for Brake Light	
     ret.brakeLights = ch_cp.vl["EBCMFrictionBrakeStatus"]["FrictionBrakePressure"] != 0 or ret.brakePressed
 
-# belows are for GM's Autohold
+# belows are for GM's Autihold
     if kegman_kans.conf['AutoHold'] == "1":
       self.autoHold = True
     else:

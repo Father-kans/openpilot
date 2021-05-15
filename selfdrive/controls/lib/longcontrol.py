@@ -19,7 +19,7 @@ RATE = 100.0
 
 
 def long_control_state_trans(active, long_control_state, v_ego, v_target, v_pid,
-                             output_gb, brake_pressed, cruise_standstill, min_speed_can):
+                             output_gb, brake_pressed, cruise_standstill, min_speed_can, d_rel):
   """Update longitudinal control state machine"""
   stopping_target_speed = min_speed_can + STOPPING_TARGET_SPEED_OFFSET
   stopping_condition = (v_ego < 2.0 and cruise_standstill) or \
@@ -28,6 +28,10 @@ def long_control_state_trans(active, long_control_state, v_ego, v_target, v_pid,
                          brake_pressed))
 
   starting_condition = v_target > STARTING_TARGET_SPEED and not cruise_standstill
+
+  if d_rel > 0.:
+    stopping_condition = stopping_condition or (v_ego < 2. and d_rel < 4.)
+    starting_condition = starting_condition and d_rel > 3.3
 
   if not active:
     long_control_state = LongCtrlState.off
@@ -59,6 +63,7 @@ class LongControl():
     self.long_control_state = LongCtrlState.off  # initialized to off
     self.pid = PIController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
                             (CP.longitudinalTuning.kiBP, CP.longitudinalTuning.kiV),
+                            CP.longitudinalTuning.kf,
                             rate=RATE,
                             sat_limit=0.8,
                             convert=compute_gb)
@@ -70,7 +75,7 @@ class LongControl():
     self.pid.reset()
     self.v_pid = v_pid
 
-  def update(self, active, CS, v_target, v_target_future, a_target, CP):
+  def update(self, active, CS, v_target, v_target_future, a_target, CP, radarState = None):
     """Update longitudinal control. This updates the state machine and runs a PID loop"""
     # Actuation limits
     gas_max = interp(CS.vEgo, CP.gasMaxBP, CP.gasMaxV)
@@ -78,9 +83,21 @@ class LongControl():
 
     # Update state machine
     output_gb = self.last_output_gb
+
+    d_rel = -1.
+    if radarState is not None and radarState.leadOne.status:
+      lead = radarState.leadOne
+      following = lead.dRel < 45.0 and lead.vLeadK > CS.vEgo and lead.aLeadK > 0.0
+      d_rel = lead.dRel
+    else:
+      following = False
+
+    if not following:
+      gas_max *= 0.9
+
     self.long_control_state = long_control_state_trans(active, self.long_control_state, CS.vEgo,
                                                        v_target_future, self.v_pid, output_gb,
-                                                       CS.brakePressed, CS.cruiseState.standstill, CP.minSpeedCan)
+                                                       CS.brakePressed, CS.cruiseState.standstill, CP.minSpeedCan, d_rel)
 
     v_ego_pid = max(CS.vEgo, CP.minSpeedCan)  # Without this we get jumps, CAN bus reports 0 when speed < 0.3
 
@@ -98,6 +115,10 @@ class LongControl():
       # Freeze the integrator so we don't accelerate to compensate, and don't allow positive acceleration
       prevent_overshoot = not CP.stoppingControl and CS.vEgo < 1.5 and v_target_future < 0.7
       deadzone = interp(v_ego_pid, CP.longitudinalTuning.deadzoneBP, CP.longitudinalTuning.deadzoneV)
+
+      # neokii
+      if d_rel > 0.:
+        a_target *= interp(d_rel, [10., 25., 70.], [1.0, 0.8, 0.6])
 
       output_gb = self.pid.update(self.v_pid, v_ego_pid, speed=v_ego_pid, deadzone=deadzone, feedforward=a_target, freeze_integrator=prevent_overshoot)
 
