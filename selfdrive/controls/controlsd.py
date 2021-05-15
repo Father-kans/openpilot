@@ -65,7 +65,7 @@ class Controls:
       self.sm = messaging.SubMaster(['deviceState', 'pandaState', 'modelV2', 'liveCalibration',
                                      'driverMonitoringState', 'longitudinalPlan', 'lateralPlan', 'liveLocationKalman',
                                      'roadCameraState', 'driverCameraState', 'managerState', 'liveParameters', 'radarState'],
-                                     ignore_alive=ignore, ignore_avg_freq=['radarState'])
+                                     ignore_alive=ignore, ignore_avg_freq=['radarState', 'longitudinalPlan'])
 
     self.can_sock = can_sock
     if can_sock is None:
@@ -159,8 +159,6 @@ class Controls:
       self.events.add(EventName.communityFeatureDisallowed, static=True)
     if not car_recognized:
       self.events.add(EventName.carUnrecognized, static=True)
-#    if hw_type == PandaType.greyPanda:
-#      self.events.add(EventName.startupGreyPanda, static=True)
     elif self.read_only:
       self.events.add(EventName.dashcamMode, static=True)
 
@@ -261,11 +259,11 @@ class Controls:
     # TODO: fix simulator
     if not SIMULATION:
       #if not NOSENSOR:
-        #if not self.sm['liveLocationKalman'].gpsOK and (self.distance_traveled > 1000) and \
-          #(not TICI or self.enable_lte_onroad):
-          # Not show in first 1 km to allow for driving out of garage. This event shows after 5 minutes
-          #self.events.add(EventName.noGps)
-      if not self.sm.all_alive(['roadCameraState', 'driverCameraState']) and (self.sm.frame > 5 / DT_CTRL):
+      #  if not self.sm['liveLocationKalman'].gpsOK and (self.distance_traveled > 1000) and \
+      #    (not TICI or self.enable_lte_onroad):
+      #    # Not show in first 1 km to allow for driving out of garage. This event shows after 5 minutes
+      #    self.events.add(EventName.noGps)
+      if not self.sm.all_alive(['roadCameraState', 'driverCameraState']):
         self.events.add(EventName.cameraMalfunction)
       if self.sm['modelV2'].frameDropPerc > 20:
         self.events.add(EventName.modeldLagging)
@@ -324,7 +322,7 @@ class Controls:
         curv = curv[5:TRAJECTORY_SIZE - 10]
         a_y_max = 2.975 - v_ego * 0.0375  # ~1.85 @ 75mph, ~2.6 @ 25mph
         v_curvature = np.sqrt(a_y_max / np.clip(np.abs(curv), 1e-4, None))
-        model_speed = np.mean(v_curvature) * 0.9
+        model_speed = np.mean(v_curvature) * 0.935
 
         if model_speed < v_ego:
           self.curve_speed_ms = float(max(model_speed, 32. * CV.KPH_TO_MS))
@@ -439,7 +437,7 @@ class Controls:
     #sr = max(params.steerRatio, 0.1)
 
     if ntune_isEnabled('useLiveSteerRatio'):
-      sr = max(self.sm['liveParameters'].steerRatio, 0.1)
+      sr = max(params.steerRatio, 0.1)
     else:
       if self.CP.carName in [CAR.VOLT]:
         sr = interp(abs(self.angle_steers_des), [5., 35.], [13.5, 17.7])
@@ -590,7 +588,6 @@ class Controls:
     controlsState.vEgoRaw = CS.vEgoRaw
     controlsState.steerOverride = CS.steeringPressed
 
-#   controlsState.angleSteers = CS.steeringAngleDeg
     controlsState.curvature = curvature
     controlsState.steeringAngleDesiredDeg = self.angle_steers_des
     controlsState.state = self.state

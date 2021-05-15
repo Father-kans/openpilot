@@ -71,6 +71,8 @@ class LateralPlanner():
 
     self.steerRatio = 0.0
 
+    self.sR_delay_counter = 0
+    self.v_ego_ed = 0.0
   def setup_mpc(self):
     self.libmpc = libmpc_py.libmpc
     self.libmpc.init()
@@ -87,12 +89,25 @@ class LateralPlanner():
     self.desired_curvature_rate = 0.0
     self.safe_desired_curvature_rate = 0.0
 
-  def update(self, sm, CP):
+  def update(self, sm, CP, VM):
     v_ego = sm['carState'].vEgo
     active = sm['controlsState'].active
     measured_curvature = sm['controlsState'].curvature
 
+    # Update vehicle model
+    x = max(sm['liveParameters'].stiffnessFactor, 0.1)
+    sr = max(sm['liveParameters'].steerRatio, 0.1)
+    VM.update_params(x, sr)
+
+# add interpolated sR by GGamjang Niro
+    self.sR_delay_counter += 1
+    if self.sR_delay_counter % 100 == 0:
+      if self.v_ego_ed < v_ego:
+        VM.sR = interp(v_ego, [11.2, 22.5], [14.5, 18.2])
+      self.v_ego_ed = v_ego
+
     md = sm['modelV2']
+
     self.LP.parse_model(sm['modelV2'])
     if len(md.position.x) == TRAJECTORY_SIZE and len(md.orientation.x) == TRAJECTORY_SIZE:
       self.path_xyz = np.column_stack([md.position.x, md.position.y, md.position.z])
@@ -232,10 +247,10 @@ class LateralPlanner():
     else:
       self.solution_invalid_cnt = 0
 
-  def publish(self, sm, pm):
+  def publish(self, sm, pm, VM):
     plan_solution_valid = self.solution_invalid_cnt < 2
     plan_send = messaging.new_message('lateralPlan')
-    plan_send.valid = sm.all_alive_and_valid(service_list=['carState', 'controlsState', 'modelV2'])
+    plan_send.valid = sm.all_alive_and_valid(service_list=['carState', 'controlsState', 'liveParameters', 'modelV2'])
     plan_send.lateralPlan.laneWidth = float(self.LP.lane_width)
     plan_send.lateralPlan.dPathPoints = [float(x) for x in self.y_pts]
     plan_send.lateralPlan.lProb = float(self.LP.lll_prob)
@@ -246,7 +261,7 @@ class LateralPlanner():
     plan_send.lateralPlan.rawCurvatureRate = float(self.desired_curvature_rate)
     plan_send.lateralPlan.curvature = float(self.safe_desired_curvature)
     plan_send.lateralPlan.curvatureRate = float(self.safe_desired_curvature_rate)
-
+    plan_send.lateralPlan.paramsValid = bool(sm['liveParameters'].valid)
     plan_send.lateralPlan.mpcSolutionValid = bool(plan_solution_valid)
 
     plan_send.lateralPlan.desire = self.desire

@@ -15,12 +15,14 @@ class CarState(CarStateBase):
     can_define = CANDefine(DBC[CP.carFingerprint]['pt'])
     self.shifter_values = can_define.dv["ECMPRDNL"]["PRNDL"]
 
+#3Bar Distance
     self.prev_distance_button = 0
     self.prev_lka_button = 0
     self.lka_button = 0
     self.distance_button = 0
     self.follow_level = 2
     self.lkMode = True
+#Autohold
     self.autoHold = False
     self.autoHoldActive = False
     self.autoHoldActivated = False
@@ -40,7 +42,7 @@ class CarState(CarStateBase):
     self.prev_distance_button = self.distance_button
     self.distance_button = pt_cp.vl["ASCMSteeringButton"]["DistanceButton"]
 
-# 6 lines for Match OP's speed to Cluster's
+# 5 lines to match OP's speed to Cluster's
 #    ret.wheelSpeeds.fl = pt_cp.vl["EBCMWheelSpdFront"]['FLWheelSpd'] * CV.KPH_TO_MS
 #    ret.wheelSpeeds.fr = pt_cp.vl["EBCMWheelSpdFront"]['FRWheelSpd'] * CV.KPH_TO_MS
 #    ret.wheelSpeeds.rl = pt_cp.vl["EBCMWheelSpdRear"]['RLWheelSpd'] * CV.KPH_TO_MS
