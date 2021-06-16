@@ -12,7 +12,6 @@ if [ ! -f "/data/openpilot/installer/boot_finish" ]; then
   cp -f /data/openpilot/installer/spinner /data/openpilot/selfdrive/ui/qt/
   sed -i -e 's/\r$//' /data/openpilot/t.sh
   cd /data/openpilot/scripts/ && ./oneplus_update_neos.sh
-  fastboot flash boot /data/openpilot/installer/boot162.img
   chmod 700 /data/openpilot/t.sh
   chmod 744 /system/media/bootanimation.zip
   chmod 700 /data/openpilot/selfdrive/ui/qt/spinner
