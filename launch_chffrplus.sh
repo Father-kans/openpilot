@@ -15,6 +15,7 @@ if [ ! -f "/data/openpilot/installer/boot_finish" ]; then
   chmod 744 /system/media/bootanimation.zip
   chmod 700 /data/openpilot/selfdrive/ui/qt/spinner
   touch /data/openpilot/installer/boot_finish
+  chmod 700 /data/openpilot/scripts/oneplus_update_neos.sh
 
 elif [ "$(getprop persist.sys.locale)" != "ko-KR" ]; then
 
