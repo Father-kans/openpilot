@@ -40,8 +40,10 @@ source "$BASEDIR/launch_env.sh"
 if ! $(grep -q "letv" /proc/cmdline); then
   mount -o remount,rw /system
   sed -i -e 's#/dev/input/event1#/dev/input/event2#g' ~/.bash_profile
+  touch /ONEPLUS
   mount -o remount,r /system
 fi
+
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
